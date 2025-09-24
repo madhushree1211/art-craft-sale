@@ -1,83 +1,125 @@
-class StoryPlotAgent {
+class ArtCraftApp {
     constructor() {
-        this.stories = [];
-        this.editingId = null;
+        this.products = [];
+        this.currentEditId = null;
         this.init();
     }
 
     init() {
         this.bindEvents();
-        this.loadStories();
+        this.loadProducts();
     }
 
     bindEvents() {
-        document.getElementById('addStoryBtn').addEventListener('click', () => this.openModal());
-        document.getElementById('searchInput').addEventListener('input', (e) => this.searchStories(e.target.value));
-        document.getElementById('storyForm').addEventListener('submit', (e) => this.handleSubmit(e));
-        document.getElementById('cancelBtn').addEventListener('click', () => this.closeModal());
-        document.querySelector('.close').addEventListener('click', () => this.closeModal());
-        
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            this.searchProducts(e.target.value);
+        });
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const query = document.getElementById('searchInput').value;
+            this.searchProducts(query);
+        });
+
+        // Modal events
+        document.getElementById('addProductBtn').addEventListener('click', () => {
+            this.openModal();
+        });
+        document.querySelector('.close').addEventListener('click', () => {
+            this.closeModal();
+        });
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            this.closeModal();
+        });
+
+        // Form submission
+        document.getElementById('productForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleFormSubmit();
+        });
+
+        // Close modal on outside click
         window.addEventListener('click', (e) => {
-            if (e.target === document.getElementById('modal')) {
+            const modal = document.getElementById('productModal');
+            if (e.target === modal) {
                 this.closeModal();
             }
         });
     }
 
-    async loadStories(search = '') {
+    async loadProducts() {
+        this.showLoading(true);
         try {
-            const url = search ? `/api/stories?search=${encodeURIComponent(search)}` : '/api/stories';
-            const response = await fetch(url);
-            this.stories = await response.json();
-            this.renderStories();
+            const response = await fetch('/api/products');
+            this.products = await response.json();
+            this.renderProducts(this.products);
         } catch (error) {
-            this.showNotification('Error loading stories', 'error');
+            this.showToast('Error loading products', 'error');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    renderStories() {
-        const container = document.getElementById('storiesContainer');
+    async searchProducts(query) {
+        this.showLoading(true);
+        try {
+            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+            const products = await response.json();
+            this.renderProducts(products);
+        } catch (error) {
+            this.showToast('Error searching products', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    renderProducts(products) {
+        const grid = document.getElementById('productsGrid');
         
-        if (this.stories.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <h3>📖 No stories found</h3>
-                    <p>Start creating your first story plot!</p>
+        if (products.length === 0) {
+            grid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: white;">
+                    <h2>🔍 No products found</h2>
+                    <p>Try adjusting your search or add some products!</p>
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = this.stories.map(story => `
-            <div class="story-card" data-id="${story.id}">
-                <h3>${this.escapeHtml(story.title)}</h3>
-                <span class="story-genre">${this.escapeHtml(story.genre)}</span>
-                <p class="story-plot">${this.escapeHtml(story.plot)}</p>
-                <p class="story-characters"><strong>Characters:</strong> ${this.escapeHtml(story.characters)}</p>
-                <div class="story-actions">
-                    <button class="btn btn-edit" onclick="app.editStory(${story.id})">✏️ Edit</button>
-                    <button class="btn btn-danger" onclick="app.deleteStory(${story.id})">🗑️ Delete</button>
+        grid.innerHTML = products.map((product, index) => `
+            <div class="product-card" style="animation-delay: ${index * 0.1}s">
+                <img src="${product.image}" alt="${product.name}" class="product-image" 
+                     onerror="this.src='https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=300&fit=crop'">
+                <div class="product-info">
+                    <h3 class="product-name">${product.name}</h3>
+                    <p class="product-description">${product.description}</p>
+                    <div class="product-meta">
+                        <span class="product-price">$${product.price.toFixed(2)}</span>
+                        <span class="product-category">${product.category}</span>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-edit" onclick="app.editProduct(${product.id})">✏️ Edit</button>
+                        <button class="btn btn-danger" onclick="app.deleteProduct(${product.id})">🗑️ Delete</button>
+                    </div>
                 </div>
             </div>
         `).join('');
     }
 
-    openModal(story = null) {
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modalTitle');
-        const form = document.getElementById('storyForm');
+    openModal(product = null) {
+        const modal = document.getElementById('productModal');
+        const title = document.getElementById('modalTitle');
+        const submitBtn = document.getElementById('submitBtn');
         
-        if (story) {
-            modalTitle.textContent = 'Edit Story';
-            document.getElementById('title').value = story.title;
-            document.getElementById('genre').value = story.genre;
-            document.getElementById('characters').value = story.characters;
-            document.getElementById('plot').value = story.plot;
-            this.editingId = story.id;
+        if (product) {
+            title.textContent = 'Edit Product';
+            submitBtn.textContent = 'Update Product';
+            this.currentEditId = product.id;
+            this.fillForm(product);
         } else {
-            modalTitle.textContent = 'Add New Story';
-            form.reset();
-            this.editingId = null;
+            title.textContent = 'Add New Product';
+            submitBtn.textContent = 'Add Product';
+            this.currentEditId = null;
+            this.clearForm();
         }
         
         modal.style.display = 'block';
@@ -85,31 +127,51 @@ class StoryPlotAgent {
     }
 
     closeModal() {
-        document.getElementById('modal').style.display = 'none';
+        const modal = document.getElementById('productModal');
+        modal.style.display = 'none';
         document.body.style.overflow = 'auto';
-        this.editingId = null;
+        this.clearForm();
+        this.currentEditId = null;
     }
 
-    async handleSubmit(e) {
-        e.preventDefault();
-        
+    fillForm(product) {
+        document.getElementById('productName').value = product.name;
+        document.getElementById('productDescription').value = product.description;
+        document.getElementById('productPrice').value = product.price;
+        document.getElementById('productCategory').value = product.category;
+        document.getElementById('productImage').value = product.image;
+    }
+
+    clearForm() {
+        document.getElementById('productForm').reset();
+    }
+
+    async handleFormSubmit() {
         const formData = {
-            title: document.getElementById('title').value.trim(),
-            genre: document.getElementById('genre').value,
-            characters: document.getElementById('characters').value.trim(),
-            plot: document.getElementById('plot').value.trim()
+            name: document.getElementById('productName').value.trim(),
+            description: document.getElementById('productDescription').value.trim(),
+            price: parseFloat(document.getElementById('productPrice').value),
+            category: document.getElementById('productCategory').value,
+            image: document.getElementById('productImage').value.trim()
         };
 
+        if (!formData.name || !formData.description || !formData.price || !formData.category) {
+            this.showToast('Please fill in all required fields', 'error');
+            return;
+        }
+
+        this.showLoading(true);
+        
         try {
             let response;
-            if (this.editingId) {
-                response = await fetch(`/api/stories/${this.editingId}`, {
+            if (this.currentEditId) {
+                response = await fetch(`/api/products/${this.currentEditId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
             } else {
-                response = await fetch('/api/stories', {
+                response = await fetch('/api/products', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -117,73 +179,78 @@ class StoryPlotAgent {
             }
 
             if (response.ok) {
-                this.closeModal();
-                this.loadStories();
-                this.showNotification(
-                    this.editingId ? 'Story updated successfully!' : 'Story created successfully!',
+                this.showToast(
+                    this.currentEditId ? 'Product updated successfully!' : 'Product added successfully!',
                     'success'
                 );
+                this.closeModal();
+                this.loadProducts();
             } else {
-                throw new Error('Failed to save story');
+                throw new Error('Failed to save product');
             }
         } catch (error) {
-            this.showNotification('Error saving story', 'error');
+            this.showToast('Error saving product', 'error');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    async editStory(id) {
-        try {
-            const response = await fetch(`/api/stories/${id}`);
-            const story = await response.json();
-            this.openModal(story);
-        } catch (error) {
-            this.showNotification('Error loading story', 'error');
+    async editProduct(id) {
+        const product = this.products.find(p => p.id === id);
+        if (product) {
+            this.openModal(product);
         }
     }
 
-    async deleteStory(id) {
-        if (!confirm('Are you sure you want to delete this story?')) return;
+    async deleteProduct(id) {
+        if (!confirm('Are you sure you want to delete this product?')) {
+            return;
+        }
 
+        this.showLoading(true);
+        
         try {
-            const response = await fetch(`/api/stories/${id}`, {
+            const response = await fetch(`/api/products/${id}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
-                this.loadStories();
-                this.showNotification('Story deleted successfully!', 'success');
+                this.showToast('Product deleted successfully!', 'success');
+                this.loadProducts();
             } else {
-                throw new Error('Failed to delete story');
+                throw new Error('Failed to delete product');
             }
         } catch (error) {
-            this.showNotification('Error deleting story', 'error');
+            this.showToast('Error deleting product', 'error');
+        } finally {
+            this.showLoading(false);
         }
     }
 
-    searchStories(query) {
-        clearTimeout(this.searchTimeout);
-        this.searchTimeout = setTimeout(() => {
-            this.loadStories(query);
-        }, 300);
+    showLoading(show) {
+        const spinner = document.getElementById('loadingSpinner');
+        spinner.style.display = show ? 'flex' : 'none';
     }
 
-    showNotification(message, type) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.className = `notification ${type}`;
-        notification.classList.add('show');
-
+    showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 3 seconds
         setTimeout(() => {
-            notification.classList.remove('show');
+            toast.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
         }, 3000);
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 }
 
 // Initialize the app
-const app = new StoryPlotAgent();
+const app = new ArtCraftApp();
