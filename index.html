@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Story Plot Agent</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📚 AI Story Plot Agent</h1>
+            <p>Create, manage, and explore story plots with AI assistance</p>
+        </header>
+
+        <div class="controls">
+            <button id="addStoryBtn" class="btn btn-primary">✨ Add New Story</button>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="🔍 Search stories..." class="search-input">
+            </div>
+        </div>
+
+        <div id="storiesContainer" class="stories-grid"></div>
+
+        <!-- Modal -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 id="modalTitle">Add New Story</h2>
+                <form id="storyForm">
+                    <div class="form-group">
+                        <label for="title">Title:</label>
+                        <input type="text" id="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre">Genre:</label>
+                        <select id="genre" required>
+                            <option value="">Select Genre</option>
+                            <option value="Fantasy">Fantasy</option>
+                            <option value="Sci-Fi">Sci-Fi</option>
+                            <option value="Mystery">Mystery</option>
+                            <option value="Romance">Romance</option>
+                            <option value="Thriller">Thriller</option>
+                            <option value="Adventure">Adventure</option>
+                            <option value="Horror">Horror</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="characters">Characters:</label>
+                        <input type="text" id="characters" placeholder="Main characters (comma separated)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="plot">Plot:</label>
+                        <textarea id="plot" rows="4" placeholder="Describe the story plot..." required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Save Story</button>
+                        <button type="button" id="cancelBtn" class="btn btn-secondary">❌ Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
