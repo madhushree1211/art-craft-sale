@@ -1,7 +1,7 @@
 {
-  "name": "ai-story-plot-agent",
+  "name": "art-craft-sale",
   "version": "1.0.0",
-  "description": "AI Story Plot Agent with CRUD and search functionality",
+  "description": "Full-stack art and craft sale application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
